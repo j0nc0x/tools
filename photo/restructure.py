@@ -22,6 +22,38 @@ def rename(path, dryrun=True):
                                                             dryrun=" (dryrun)" if dryrun else ""))
     return path if dryrun else new_path
 
+def raw_exists(path):
+    exists = False
+    if os.path.isdir(os.path.join(path, "raw")):
+        exists = True
+    if os.path.isdir(os.path.join(path, "RAW")):
+        exists = True
+    if os.path.isdir(os.path.join(path, "Raw")):
+        exists = True
+    return exists
+
+def archive_videos(path, dryrun=True):
+    # See if there are any video files
+    files = os.listdir(path)
+    files = [os.path.join(path, f) for f in files if f.endswith(".MOV") or f.endswith(".mov") or f.endswith(".MP4") or f.endswith(".mp4") or f.endswith(".THM")]
+
+    # Make sure the videos directory exists
+    video_path = os.path.join(path, "videos")
+    if files and not os.path.exists(video_path):
+        if not dryrun:
+            os.makedirs(video_path)
+        print("{path} created.{dryrun}".format(path=video_path,
+                                               dryrun=" (dryrun)" if dryrun else ""))
+
+    # Move the videos into video directory
+    for f in files:
+        if not dryrun:
+            shutil.move(f, video_path)
+        print("Moving {video} to {video_dir}.{dryrun}".format(video=f,
+                                                              video_dir=video_path,
+                                                              dryrun=" (dryrun)" if dryrun else ""))
+
+
 def archive_jpg(path, dryrun=True):
     # Make sure the darktable/jpg directory exists
     jpg_path = os.path.join(path, "darktable/jpg")
@@ -31,25 +63,59 @@ def archive_jpg(path, dryrun=True):
         print("{path} created.{dryrun}".format(path=jpg_path,
                                                dryrun=" (dryrun)" if dryrun else ""))
 
-    # Now copy any jpgs found into that directory
+    # Now move any jpgs found into that directory
     files = os.listdir(path)
-    files = [f for f in files if not f.endswith(".jpg")]
-    files = [f for f in files if os.path.isfile(os.path.join(path,f))]
-    print files
-    
+    files = [f for f in files if f.endswith(".jpg") or f.endswith(".JPG") or f.endswith(".ini") or f.endswith(".db") or f.endswith(".db:encryptable") or f.endswith(".PNG") or f.endswith(".GIF") or f.endswith(".gif") or f.endswith(".xcf") or f.endswith(".TIF") or f.endswith(".tif") or f.endswith(".DS_Store")]
+    files = [os.path.join(path,f) for f in files if os.path.isfile(os.path.join(path,f))]
+
+    # Move the image files
+    for f in files:
+        if not dryrun:
+            shutil.move(f, jpg_path)
+        print("Moving {image} to {jpg_dir}.{dryrun}".format(image=f,
+                                                            jpg_dir=jpg_path,
+                                                            dryrun=" (dryrun)" if dryrun else ""))
+
+def move_raws(path,dryrun=True):
+    raw = None
+    if os.path.isdir(os.path.join(path, "raw")):
+        raw = os.path.join(path, "raw")
+    if os.path.isdir(os.path.join(path, "RAW")):
+        raw = os.path.join(path, "RAW")
+    if os.path.isdir(os.path.join(path, "Raw")):
+        raw = os.path.join(path, "Raw")
+
+    # Now copy any jpgs found into that directory
+    files = os.listdir(raw)
+    files = [f.split(".")[-1] for f in files]
+    print(list(set(files)))
+
 
 def restructure(library, dryrun=True):
     dirs = os.listdir(library)
     dirs.sort()
-    dirs = [d for d in dirs if re.match("^[0-9][0-9][0-9] .*", d)]
+    dirs = [d for d in dirs if re.match("^[0-9][0-9][0-9]_.*", d)]
+    print dirs
     dirs = [os.path.join(library,d) for d in dirs if os.path.isdir(os.path.join(library, d))]
     for filename in dirs:
         print("-------------------------------------------")
         # Rename directories to get rid of any spaces
         path = rename(filename, dryrun=dryrun)
 
+        # check if a raw sub-directory exists. We only want to process these directories
+        raw = raw_exists(path)
+        if not raw:
+            continue
+
+        # Archive video files
+        archive_videos(path, dryrun=dryrun)
+
         # Archive jpgs to the darktable/jpg sub-directory
         archive_jpg(path, dryrun=dryrun)
+
+        # Move raws to root directory
+        move_raws(path, dryrun=True)
+
 
 
 

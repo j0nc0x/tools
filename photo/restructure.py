@@ -85,11 +85,39 @@ def move_raws(path,dryrun=True):
     if os.path.isdir(os.path.join(path, "Raw")):
         raw = os.path.join(path, "Raw")
 
-    # Now copy any jpgs found into that directory
-    files = os.listdir(raw)
-    files = [f.split(".")[-1] for f in files]
-    print(list(set(files)))
+    # Make sure the darktable/edit directory exists
+    edit_path = os.path.join(path, "darktable/edit")
+    if not os.path.exists(edit_path):
+        if not dryrun:
+            os.makedirs(edit_path)
+        print("{path} created.{dryrun}".format(path=edit_path,
+                                               dryrun=" (dryrun)" if dryrun else ""))
 
+    # Now copy any files found other than CR2s into that directory
+    files = os.listdir(raw)
+    files = [f for f in files if not f.endswith(".CR2")]
+    files = [os.path.join(raw, f) for f in files if os.path.isfile(os.path.join(raw, f))]
+
+    # Move the edit files
+    for f in files:
+        if not dryrun:
+            shutil.move(f, edit_path)
+        print("Moving {image} to {edit_dir}.{dryrun}".format(image=f,
+                                                             edit_dir=edit_path,
+                                                             dryrun=" (dryrun)" if dryrun else ""))
+
+    # Now copy any CR2 files found into the root directory
+    files = os.listdir(raw)
+    files = [f for f in files if f.endswith(".CR2")]
+    files = [os.path.join(raw, f) for f in files if os.path.isfile(os.path.join(raw, f))]
+
+    # Move the raw files
+    for f in files:
+        if not dryrun:
+            shutil.move(f, path)
+        print("Moving {image} to {root}.{dryrun}".format(image=f,
+                                                         root=path,
+                                                         dryrun=" (dryrun)" if dryrun else ""))
 
 def restructure(library, dryrun=True):
     dirs = os.listdir(library)
@@ -98,7 +126,8 @@ def restructure(library, dryrun=True):
     print dirs
     dirs = [os.path.join(library,d) for d in dirs if os.path.isdir(os.path.join(library, d))]
     for filename in dirs:
-        print("-------------------------------------------")
+        print("---------------------------------------------------------------------------")
+        print(filename)
         # Rename directories to get rid of any spaces
         path = rename(filename, dryrun=dryrun)
 

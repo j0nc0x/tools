@@ -96,7 +96,7 @@ def move_raws(path,dryrun=True):
     # Now copy any files found other than CR2s into that directory
     files = os.listdir(raw)
     files = [f for f in files if not f.endswith(".CR2")]
-    files = [os.path.join(raw, f) for f in files if os.path.isfile(os.path.join(raw, f))]
+    files = [os.path.join(raw, f) for f in files]
 
     # Move the edit files
     for f in files:
@@ -118,10 +118,17 @@ def move_raws(path,dryrun=True):
         print("Moving {image} to {root}.{dryrun}".format(image=f,
                                                          root=path,
                                                          dryrun=" (dryrun)" if dryrun else ""))
+    
+    # Remove the raw directory
+    if not dryrun:
+        os.rmdir(raw)
+    print("Removing raw directory {raw}.{dryrun}".format(raw=raw,
+                                                         dryrun=" (dryrun)" if dryrun else ""))
 
 def restructure(library, dryrun=True):
     dirs = os.listdir(library)
     dirs.sort()
+    print dirs
     dirs = [d for d in dirs if re.match("^[0-9][0-9][0-9]_.*", d)]
     print dirs
     dirs = [os.path.join(library,d) for d in dirs if os.path.isdir(os.path.join(library, d))]
@@ -143,7 +150,7 @@ def restructure(library, dryrun=True):
         archive_jpg(path, dryrun=dryrun)
 
         # Move raws to root directory
-        move_raws(path, dryrun=True)
+        move_raws(path, dryrun=dryrun)
 
 
 
